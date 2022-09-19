@@ -1,0 +1,145 @@
+version: '2'
+services:
+    elasticsearch1:
+        image: docker.elastic.co/elasticsearch/elasticsearch:7.8.1
+        hostname: doc-elastic101
+        container_name: es01
+        environment:
+            - cluster.name=es-docker-cluster
+            - network.host=0.0.0.0
+            - node.name=es01
+            - node.master=true
+            - node.data=true
+            - discovery.seed_hosts=es02,es03
+            - cluster.initial_master_nodes=es01,es02,es03
+            - bootstrap.memory_lock=true
+            - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+        ulimits:
+            memlock:
+                soft: -1
+                hard: -1
+        mem_limit: 1g
+        ports:
+            - "9200:9200/tcp"
+        networks:
+            spark-nw:
+                ipv4_address: 172.30.10.1
+        volumes:
+            - elasticsearch1-data:/usr/share/elasticsearch/data
+        extra_hosts:
+            - "doc-elastic102:172.30.10.2"
+            - "doc-elastic103:172.30.10.3"
+            - "doc-kibana101:172.30.20.1"
+
+    elasticsearch2:
+        image: docker.elastic.co/elasticsearch/elasticsearch:7.8.1
+        hostname: doc-elastic102
+        container_name: es02
+        environment:
+            - cluster.name=es-docker-cluster
+            - network.host=0.0.0.0
+            - node.name=es02
+            - node.master=true
+            - node.data=true
+            - discovery.seed_hosts=es01,es03
+            - cluster.initial_master_nodes=es01,es02,es03
+            - bootstrap.memory_lock=true
+            - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+        ulimits:
+            memlock:
+                soft: -1
+                hard: -1
+        mem_limit: 1g
+        networks:
+            spark-nw:
+                ipv4_address: 172.30.10.2
+        volumes:
+            - elasticsearch2-data:/usr/share/elasticsearch/data
+        extra_hosts:
+            - "doc-elastic101:172.30.10.1"
+            - "doc-elastic103:172.30.10.3"
+            - "doc-kibana101:172.30.20.1"
+
+    elasticsearch3:
+        image: docker.elastic.co/elasticsearch/elasticsearch:7.8.1
+        hostname: doc-elastic103
+        container_name: es03
+        environment:
+            - cluster.name=es-docker-cluster
+            - network.host=0.0.0.0
+            - node.name=es03
+            - node.master=true
+            - node.data=true
+            - discovery.seed_hosts=es01,es02
+            - cluster.initial_master_nodes=es01,es02,es03
+            - bootstrap.memory_lock=true
+            - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+        ulimits:
+            memlock:
+                soft: -1
+                hard: -1
+        mem_limit: 1g
+        networks:
+            spark-nw:
+                ipv4_address: 172.30.10.3
+        volumes:
+            - elasticsearch3-data:/usr/share/elasticsearch/data
+        extra_hosts:
+            - "doc-elastic101:172.30.10.1"
+            - "doc-elastic102:172.30.10.2"
+            - "doc-kibana101:172.30.20.1"
+
+    kibana:
+        image: docker.elastic.co/kibana/kibana:7.8.1
+        hostname: doc-kibana101
+        container_name: kibana1
+        environment:
+            SERVER_NAME: "kibana"
+            ELASTICSEARCH_HOSTS: "http://doc-elastic101:9200"
+            ELASTICSEARCH_REQUESTTIMEOUT: "60000"
+        ports:
+            - "5601:5601/tcp"
+        mem_limit: 1g
+        networks:
+            spark-nw:
+                ipv4_address: 172.30.20.1
+        extra_hosts:
+            - "doc-elastic101:172.30.10.1"
+            - "doc-elastic102:172.30.10.2"
+            - "doc-elastic103:172.30.10.3"
+        depends_on:
+            - elasticsearch1
+            - elasticsearch2
+            - elasticsearch3
+    
+    mysql:
+        build: ./mysql/
+        container_name: mysql
+        volumes:
+            - ./mysql/DB:/docker-entrypoint-initdb.d
+        image: mysql
+        environment:
+            MYSQL_ROOT_PASSWORD: root
+            TZ: 'Asia/Tokyo'
+        ports:
+            - 3306:3306
+            - 33060:33060
+    
+    logstash:
+        build: ./logstash
+        container_name: logstash
+        ports:
+            - 5044:5044
+            - 9600:9600
+
+volumes:
+    elasticsearch1-data:
+        driver: local
+    elasticsearch2-data:
+        driver: local
+    elasticsearch3-data:
+        driver: local
+
+networks:
+    spark-nw:
+        external: true
