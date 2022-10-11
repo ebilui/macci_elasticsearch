@@ -1,4 +1,5 @@
 DELIMITER ;;
+DROP TRIGGER IF EXISTS macci_after_insert;
 CREATE DEFINER=`root`@`%` TRIGGER `macci_after_insert` AFTER INSERT ON `v_map_facility` FOR EACH ROW INSERT INTO copy_macci.macci_journal
 	SET
 		action_type = 'create',
@@ -6,6 +7,7 @@ CREATE DEFINER=`root`@`%` TRIGGER `macci_after_insert` AFTER INSERT ON `v_map_fa
 		action_time = now() ;;
 DELIMITER ;
 DELIMITER ;;
+DROP TRIGGER IF EXISTS macci_after_update;
 CREATE DEFINER=`root`@`%` TRIGGER `macci_after_update` AFTER UPDATE ON `v_map_facility` FOR EACH ROW IF NEW.facility_id = OLD.facility_id THEN
 		INSERT INTO copy_macci.macci_journal
 		SET action_type = 'update',
@@ -25,19 +27,22 @@ CREATE DEFINER=`root`@`%` TRIGGER `macci_after_update` AFTER UPDATE ON `v_map_fa
 	END IF ;;
 DELIMITER ;
 DELIMITER ;;
+DROP TRIGGER IF EXISTS macci_after_delete;
 CREATE DEFINER=`root`@`%` TRIGGER `macci_after_delete` AFTER DELETE ON `v_map_facility` FOR EACH ROW INSERT INTO copy_macci.macci_journal
 	SET action_type = 'delete',
 		facility_id = OLD.facility_id,
 		action_time = now() ;;
 DELIMITER ;
 DELIMITER ;;
+DROP TRIGGER IF EXISTS macci_after_insert_favorite;
 CREATE DEFINER=`root`@`%` TRIGGER `macci_after_insert_favorite` AFTER INSERT ON `m_favorite_list` FOR EACH ROW INSERT INTO copy_macci.macci_journal
 	SET
-		action_type = 'update',
+		action_type = 'create',
 		facility_id = NEW.point_id,
 		action_time = now() ;;
 DELIMITER ;
 DELIMITER ;;
+DROP TRIGGER IF EXISTS macci_after_update_favorite;
 CREATE DEFINER=`root`@`%` TRIGGER `macci_after_update_favorite` AFTER UPDATE ON `m_favorite_list` FOR EACH ROW IF NEW.point_id = OLD.point_id THEN
 		INSERT INTO copy_macci.macci_journal
 		SET action_type = 'update',
@@ -51,12 +56,13 @@ CREATE DEFINER=`root`@`%` TRIGGER `macci_after_update_favorite` AFTER UPDATE ON 
 			action_time = NOW();
 		-- AND NEW one created
 		INSERT INTO copy_macci.macci_journal
-		SET action_type = 'update',
+		SET action_type = 'create',
 			facility_id = NEW.point_id,
 			action_time = NOW();
 	END IF ;;
 DELIMITER ;
 DELIMITER ;;
+DROP TRIGGER IF EXISTS macci_after_delete_favorite;
 CREATE DEFINER=`root`@`%` TRIGGER `macci_after_delete_favorite` AFTER DELETE ON `m_favorite_list` FOR EACH ROW INSERT INTO copy_macci.macci_journal
 	SET action_type = 'delete',
 		facility_id = OLD.point_id,
